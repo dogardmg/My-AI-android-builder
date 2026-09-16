@@ -17,10 +17,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm install
+          node-version: 20
+          cache: npm
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -28,6 +26,26 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
         run: |
-          echo "ANDROID_HOME=$ANDROID_SD
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+      - name: Build Android APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-AI-Android-Builder-APK
+          path: |
+            **/build/outputs/apk/debug/*.apk
