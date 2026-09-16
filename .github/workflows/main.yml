@@ -1,0 +1,51 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install packages
+        run: npm install
+
+      - name: Build APK
+        run: |
+          if [ -f android/gradlew ]; then
+            cd android
+            chmod +x gradlew
+            ./gradlew assembleDebug
+          else
+            npx expo prebuild --non-interactive
+            cd android
+            chmod +x gradlew
+            ./gradlew assembleDebug
+          fi
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: My-AI-Android-Builder-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
