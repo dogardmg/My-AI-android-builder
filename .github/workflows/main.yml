@@ -1,18 +1,24 @@
+
 name: Build Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get code
+      - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -20,36 +26,27 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install packages
+      - name: Install dependencies
         run: npm install
 
-      - name: Prepare Android project
+      - name: Create React Native bundle
         run: |
-          if [ ! -d "android" ]; then
-            npx expo prebuild --platform android --non-interactive
-          fi
-
-      - name: Give Gradle permission
-        run: |
-          chmod +x android/gradlew
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
 
       - name: Build APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Find APK
         run: |
-          echo "APK files:"
-          find android -name "*.apk" -type f
+          chmod +x gradlew
+          ./gradlew assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: My-AI-Android-Builder-APK
-          path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          path: android/app/build/outputs/apk/release/*.apk
