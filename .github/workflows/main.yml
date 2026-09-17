@@ -13,44 +13,35 @@ jobs:
     steps:
 
       - name: Checkout source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          package-manager-cache: false
+          node-version: '20'
+          cache: npm
 
       - name: Install dependencies
-        run: |
-          npm install
+        run: npm install
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
 
       - name: Build Android APK
-        run: |
-          if [ -f "gradlew" ]; then
-            chmod +x gradlew
-            ./gradlew assembleDebug
-          elif [ -f "android/gradlew" ]; then
-            cd android
-            chmod +x gradlew
-            ./gradlew assembleDebug
-          else
-            echo "ERROR: Gradle wrapper (gradlew) not found"
-            exit 1
-          fi
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Find APK
-        run: |
-          echo "Searching for APK..."
-          find . -type f -name "*.apk" -print
+        run: find android -type f -name "*.apk"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: My-AI-Android-Builder-APK
-          path: |
-            **/build/outputs/apk/**/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
-          retention-days: 7
 
      
